@@ -7,7 +7,8 @@ load_dotenv()
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
-CHROMA_DIR = os.getenv("CHROMA_DIR", "./chroma_store")
+
+# Storage: MongoDB
 
 # Database
 DB_CONFIG = {
@@ -17,3 +18,7 @@ DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "port": os.getenv("DB_PORT"),
 }
+
+# MongoDB settings (used instead of Chroma)
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB = os.getenv("MONGO_DB", "jobmatcher")

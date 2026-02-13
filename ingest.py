@@ -1,11 +1,40 @@
 import os
-from chroma_client import client
+import re
+from mongo_client import client
 from embedder import embed
 from skill_extractor import parse_skills
 from text_utils import extract_text
 
 resume_col = client.get_or_create_collection("resumes")
 job_col = client.get_or_create_collection("jobs")
+
+
+def _extract_job_metadata(text: str) -> dict:
+    """Extract location, employment type, and experience from job description."""
+    metadata = {
+        "location": "Unknown",
+        "job_type": "Full-time",
+        "min_exp": 0,
+        "max_exp": 0
+    }
+    
+    # Extract Location
+    location_match = re.search(r"Location:\s*([^\n]+)", text, re.IGNORECASE)
+    if location_match:
+        metadata["location"] = location_match.group(1).strip()
+    
+    # Extract Employment Type
+    type_match = re.search(r"Employment Type:\s*([^\n]+)", text, re.IGNORECASE)
+    if type_match:
+        metadata["job_type"] = type_match.group(1).strip()
+    
+    # Extract Experience (e.g., "3–7 years" or "3-7 years")
+    exp_match = re.search(r"Experience Required:\s*(\d+)[–\-](\d+)", text, re.IGNORECASE)
+    if exp_match:
+        metadata["min_exp"] = int(exp_match.group(1))
+        metadata["max_exp"] = int(exp_match.group(2))
+    
+    return metadata
 
 
 def ingest_resumes(path="data/resumes"):
@@ -60,6 +89,7 @@ def ingest_jobs(path="data/jobs"):
             text = f.read()
 
         primary_skills, secondary_skills = parse_skills(text)
+        job_meta = _extract_job_metadata(text)
 
         job_col.add(
             ids=[file],
@@ -68,13 +98,13 @@ def ingest_jobs(path="data/jobs"):
             metadatas=[{
                 "job_id": file,
                 "skills": ", ".join(primary_skills + secondary_skills),
-                "min_exp": 3,
-                "max_exp": 8,
-                "location": "Bangalore",
+                "location": job_meta["location"],
+                "job_type": job_meta["job_type"],
+                "min_exp": job_meta["min_exp"],
+                "max_exp": job_meta["max_exp"],
                 "role": "Backend"
             }]
         )
-
 
         added += 1
 
